@@ -1,0 +1,7 @@
+services:
+  api:
+    image: go-api
+    build: .
+
+volumes:
+  postgres-data:

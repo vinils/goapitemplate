@@ -1,0 +1,21 @@
+# Ignore Go build artifacts and temporary files
+*.exe
+*.bin
+*.test
+*/tmp/
+vendor/ # If you're not vendoring dependencies within the image
+
+# Ignore common development tools and configurations
+.git
+.gitignore
+.env
+.idea/
+.vscode/
+.DS_Store
+
+# Ignore documentation and markdown files (unless needed in the image)
+*.md
+docs/
+
+# Ignore log files and other runtime artifacts
+*.log

@@ -1,0 +1,135 @@
+trigger:
+- main
+
+name: $(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
+
+strategy:
+  matrix:
+    linuxAmd64:
+      imageName: "ubuntu-latest"
+      PLATFORM: 'linux/amd64'
+      FINALIMAGE: gcr.io/distroless/base-debian11
+    linuxArm64:
+      imageName: "ubuntu-latest"
+      PLATFORM: 'linux/arm64'
+      FINALIMAGE: gcr.io/distroless/base-debian11
+    windows:
+      imageName: "windows-latest"
+      PLATFORM: 'windows/amd64'
+      FINALIMAGE: golang:$(GOVERSION)
+
+pool:
+  vmImage: $(imageName)
+
+variables:
+  GOVERSION: '1.24.7'
+
+steps:
+
+- script: |
+    docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+  condition: contains(variables.PLATFORM, 'arm')
+  displayName: Set ARM emulator on linux
+
+- task: PowerShell@2
+  displayName: 'Set dockerfile shell on windows'
+  condition: contains(variables.PLATFORM, 'windows')
+  inputs:
+    targetType: 'inline'
+    script: |
+      $filePath = "$(Build.SourcesDirectory)/Dockerfile"
+      Write-Host "$filePath"
+      $fileContent = Get-Content $filePath
+      $newContent = $fileContent.replace('# SHELL ["cmd /S /C"]', 'SHELL ["cmd /S /C"]')
+      Write-Host "$newContent"
+      Set-Content -Path $filePath -Value $newContent
+- task: Docker@2
+  displayName: 'Build'
+  inputs:
+    repository: '$(Build.DefinitionName)'
+    command: 'build'
+    Dockerfile: '**/Dockerfile'
+    arguments: |
+      --target build
+      --platform $(PLATFORM)
+      --build-arg BUILDIMGTAG=$(GOVERSION)
+      --build-arg BUILDNUMER=$(Build.BuildNumber)
+      --build-arg FINALIMAGE=$(FINALIMAGE)
+    tags: |
+      build
+
+- script: |
+    docker create --name temp_container $(Build.DefinitionName):build
+    docker cp temp_container:/app/bin $(Build.ArtifactStagingDirectory)
+    docker rm temp_container
+  displayName: 'Copy Build'
+
+- task: PublishBuildArtifacts@1
+  displayName: "Publish Build"
+  continueOnError: true
+  inputs:
+     artifactName: $(PLATFORM)
+
+- task: Docker@2
+  displayName: "Tests & Coverage"
+  inputs:
+    repository: '$(Build.DefinitionName)'
+    command: 'build'
+    Dockerfile: '**/Dockerfile'
+    arguments: |
+      --target test
+      --platform $(PLATFORM)
+      --build-arg BUILDIMGTAG=$(GOVERSION)
+      --build-arg BUILDNUMER=$(Build.BuildNumber)
+      --build-arg FINALIMAGE=$(FINALIMAGE)
+    tags: |
+      test
+
+- script: |
+    docker create --name temp_container $(Build.DefinitionName):test
+    docker cp temp_container:/app/test $(Build.ArtifactStagingDirectory)/test
+    docker rm temp_container
+  displayName: 'Copy Tests'
+
+- task: PublishTestResults@2
+  displayName: "Publish Tests"
+  inputs:
+    testResultsFormat: 'JUnit'
+    testResultsFiles: '$(Build.ArtifactStagingDirectory)/test/**/junit.xml'
+    mergeTestResults: true
+    failTaskOnFailedTests: true
+    failTaskOnFailureToPublishResults: true
+    failTaskOnMissingResultsFile: true
+    testRunTitle: "$(PLATFORM)"
+
+- task: PublishCodeCoverageResults@2
+  displayName: "Publish Coverage"
+  condition: always()
+  inputs:
+    summaryFileLocation: '$(Build.ArtifactStagingDirectory)/test/**/coverage.xml'
+    failIfCoverageEmpty: true
+
+- task: Docker@2
+  displayName: "Final image"
+  inputs:
+    repository: '$(Build.DefinitionName)'
+    command: 'build'
+    Dockerfile: '**/Dockerfile'
+    arguments: |
+      --platform $(PLATFORM)
+      --build-arg BUILDIMGTAG=$(GOVERSION)
+      --build-arg BUILDNUMER=$(Build.BuildNumber)
+      --build-arg FINALIMAGE=$(FINALIMAGE)
+    ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/main') }}:
+      tags: |
+        $(Build.BuildNumber)
+        latest
+    ${{ else }}:
+      tags: |
+        $(Build.BuildNumber)
+
+# - task: Docker@2
+#   inputs:
+#     containerRegistry: '$(containerRegistry)'
+#     repository: '$(Build.DefinitionName)'
+#     command: 'push'

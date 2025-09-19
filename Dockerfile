@@ -14,9 +14,10 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY *.go ./
+COPY Makefile ./
 
 RUN mkdir -p "c:\app\bin"
-RUN go build -o /app/bin/myapp
+RUN make build
 
 FROM build AS test
 

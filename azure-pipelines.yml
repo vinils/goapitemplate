@@ -3,10 +3,7 @@ trigger:
     include:
     - '*'
   paths:
-    include:
-    - docs
     exclude:
-    - docs/README.md
     - README.md
     - devcontainer
     - env.example

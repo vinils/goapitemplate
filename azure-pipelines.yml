@@ -1,5 +1,18 @@
 trigger:
-- main
+  branches:
+    include:
+    - '*'
+  paths:
+    include:
+    - docs
+    exclude:
+    - docs/README.md
+    - README.md
+    - devcontainer
+    - env.example
+    - '**/*.http'
+    - azurepipelines-coverage.yml
+    - Dockerfile.dev
 
 name: $(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
 

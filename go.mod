@@ -1,6 +1,6 @@
 module github.com/vinils/goapitemplate
 
-go 1.24.7
+go 1.25.1
 
 require (
 	github.com/gin-gonic/gin v1.10.1

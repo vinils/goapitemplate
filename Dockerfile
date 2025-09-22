@@ -1,5 +1,5 @@
 # latest version compatible on windows nonserver and linux
-ARG BUILDIMGTAG=1.24.7
+ARG BUILDIMGTAG=1.24.2
 ARG FINALIMAGE=gcr.io/distroless/base-debian11
 # ARG BINARIESDIR=/app/bin #issue to recover the arg value in run command on windows
 # ARG APPNAME=myapp #issue to recover the arg value in run command on windows

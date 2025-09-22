@@ -89,6 +89,26 @@ steps:
     docker rm temp_container
   displayName: 'Copy Tests'
 
+- task: PowerShell@2
+  displayName: 'Remove UTF BOM from tests files'
+  condition: contains(variables.PLATFORM, 'windows')
+  inputs:
+    targetType: 'inline'
+    script: |
+      $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $False # $False indicates no BOM
+
+      $testFilePath = "$(Build.ArtifactStagingDirectory)/test/junit.xml"
+      $testContent = Get-Content $testFilePath -Raw
+      Write-Host "$testContent"
+      [System.IO.File]::WriteAllLines($testFilePath, $testContent, $Utf8NoBomEncoding)
+
+      $coverageFilePath = "$(Build.ArtifactStagingDirectory)/test/coverage.xml"
+      $coverageContent = Get-Content $coverageFilePath -Raw
+      Write-Host "$coverageContent"
+      [System.IO.File]::WriteAllLines($coverageFilePath, $coverageContent, $Utf8NoBomEncoding)
+
+      dir "$(Build.ArtifactStagingDirectory)/test"
+
 - task: PublishTestResults@2
   displayName: "Publish Tests"
   inputs:

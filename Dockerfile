@@ -26,14 +26,6 @@ RUN go install github.com/AlekSi/gocov-xml@modname9
 
 RUN mkdir -p "/app/test"
 
-# when WINDOWS docker build set SHELL ["cmd /S /C"]
-# powershell "redirect output" (>, <, |) are casting to UTF-16LE which generate problem on gocov castings
-# besides of that windows docker can run different prompt while building and running which can create problem to debug.
-# since there is no way to gocov -output file/path setting shell for windows enforce the best agnostic platform script
-# removing it will show the error while docker build
-# https://github.com/docker-library/openjdk/issues/32
-# SHELL ["cmd /S /C"]
-
 RUN go test -v -coverprofile coverage.txt -covermode count ./... 2>&1 | go-junit-report > /app/test/junit.xml
 RUN gocov convert coverage.txt | gocov-xml > /app/test/coverage.xml
 

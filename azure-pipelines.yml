@@ -13,150 +13,149 @@ trigger:
 
 name: $(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
 
-strategy:
-  matrix:
-    linuxAmd64:
-      imageName: "ubuntu-latest"
-      OS: 'linux'
-      ARCH: 'amd64'
-      FINALIMAGE: gcr.io/distroless/base-debian11
-    linuxArm64:
-      imageName: "ubuntu-latest"
-      OS: 'linux'
-      ARCH: 'arm64'
-      FINALIMAGE: gcr.io/distroless/base-debian11
-    windows:
-      imageName: "windows-latest"
-      OS: 'windows'
-      ARCH: 'amd64'
-      FINALIMAGE: golang:$(BUILDIMGTAG)
+jobs:
+- job: Build
+  strategy:
+    matrix:
+      linuxAmd64:
+        imageName: "ubuntu-latest"
+        OS: 'linux'
+        ARCH: 'amd64'
+        FINALIMAGE: gcr.io/distroless/base-debian11
+      linuxArm64:
+        imageName: "ubuntu-latest"
+        OS: 'linux'
+        ARCH: 'arm64'
+        FINALIMAGE: gcr.io/distroless/base-debian11
+      windows:
+        imageName: "windows-latest"
+        OS: 'windows'
+        ARCH: 'amd64'
+        FINALIMAGE: golang:$(BUILDIMGTAG)
+  pool:
+    vmImage: $(imageName)
+  variables:
+    BUILDIMGTAG: '1.24.7'
+  steps:
 
-pool:
-  vmImage: $(imageName)
+  - script: |
+      docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+    condition: contains(variables.ARCH, 'arm')
+    displayName: Set ARM emulator on linux
 
-variables:
-  BUILDIMGTAG: '1.24.7'
-
-steps:
-
-- script: |
-    docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-  condition: contains(variables.ARCH, 'arm')
-  displayName: Set ARM emulator on linux
-
-- task: PowerShell@2
-  displayName: 'Set dockerfile shell on windows'
-  condition: contains(variables.OS, 'windows')
-  inputs:
-    targetType: 'inline'
-    script: |
-      $filePath = "$(Build.SourcesDirectory)/Dockerfile"
-      Write-Host "$filePath"
-      $fileContent = Get-Content $filePath
-      $newContent = $fileContent.replace('# SHELL ["cmd /S /C"]', 'SHELL ["cmd /S /C"]')
-      Write-Host "$newContent"
-      Set-Content -Path $filePath -Value $newContent
-- task: Docker@2
-  displayName: 'Build'
-  inputs:
-    repository: '$(Build.Repository.Name)'
-    command: 'build'
-    Dockerfile: '**/Dockerfile'
-    arguments: |
-      --target build
-      --platform $(OS)/$(ARCH)
-      --build-arg BUILDIMGTAG=$(BUILDIMGTAG)
-      --build-arg BUILDNUMER=$(Build.BuildNumber)
-      --build-arg FINALIMAGE=$(FINALIMAGE)
-    tags: |
-      build
-
-- script: |
-    docker create --name temp_container $(Build.Repository.Name):build
-    docker cp temp_container:/app/bin $(Build.ArtifactStagingDirectory)
-    docker rm temp_container
-  displayName: 'Copy Build'
-
-- task: PublishBuildArtifacts@1
-  displayName: "Publish Build"
-  continueOnError: true
-  inputs:
-     artifactName: $(OS)/$(ARCH)
-
-- task: Docker@2
-  displayName: "Tests & Coverage"
-  inputs:
-    repository: '$(Build.Repository.Name)'
-    command: 'build'
-    Dockerfile: '**/Dockerfile'
-    arguments: |
-      --target test
-      --platform $(OS)/$(ARCH)
-      --build-arg BUILDIMGTAG=$(BUILDIMGTAG)
-      --build-arg BUILDNUMER=$(Build.BuildNumber)
-      --build-arg FINALIMAGE=$(FINALIMAGE)
-    tags: |
-      test
-
-- script: |
-    docker create --name temp_container $(Build.Repository.Name):test
-    docker cp temp_container:/app/test $(Build.ArtifactStagingDirectory)/test
-    docker rm temp_container
-  displayName: 'Copy Tests'
-
-- task: PublishTestResults@2
-  displayName: "Publish Tests"
-  inputs:
-    testResultsFormat: 'JUnit'
-    testResultsFiles: '$(Build.ArtifactStagingDirectory)/test/**/junit.xml'
-    mergeTestResults: true
-    failTaskOnFailedTests: true
-    failTaskOnFailureToPublishResults: true
-    failTaskOnMissingResultsFile: true
-    testRunTitle: "$(OS)/$(ARCH)"
-
-- task: PublishCodeCoverageResults@2
-  displayName: "Publish Coverage"
-  condition: always()
-  inputs:
-    summaryFileLocation: '$(Build.ArtifactStagingDirectory)/test/**/coverage.xml'
-    failIfCoverageEmpty: true
-
-
-- task: Docker@2
-  displayName: "Final image"
-  inputs:
-    containerRegistry: 'Dockerhubvinils'
-    repository: '$(Build.Repository.Name)'
-    command: 'build'
-    Dockerfile: '**/Dockerfile'
-    arguments: |
-      --platform $(OS)/$(ARCH)
-      --build-arg BUILDIMGTAG=$(BUILDIMGTAG)
-      --build-arg BUILDNUMER=$(Build.BuildNumber)
-      --build-arg FINALIMAGE=$(FINALIMAGE)
-    ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/main') }}:
+  - task: PowerShell@2
+    displayName: 'Set dockerfile shell on windows'
+    condition: contains(variables.OS, 'windows')
+    inputs:
+      targetType: 'inline'
+      script: |
+        $filePath = "$(Build.SourcesDirectory)/Dockerfile"
+        Write-Host "$filePath"
+        $fileContent = Get-Content $filePath
+        $newContent = $fileContent.replace('# SHELL ["cmd /S /C"]', 'SHELL ["cmd /S /C"]')
+        Write-Host "$newContent"
+        Set-Content -Path $filePath -Value $newContent
+  - task: Docker@2
+    displayName: 'Build'
+    inputs:
+      repository: '$(Build.Repository.Name)'
+      command: 'build'
+      Dockerfile: '**/Dockerfile'
+      arguments: |
+        --target build
+        --platform $(OS)/$(ARCH)
+        --build-arg BUILDIMGTAG=$(BUILDIMGTAG)
+        --build-arg BUILDNUMER=$(Build.BuildNumber)
+        --build-arg FINALIMAGE=$(FINALIMAGE)
       tags: |
-        $(OS)-$(ARCH)-$(Build.BuildNumber)
-        $(OS)-$(ARCH)-latest
-        latest
-    ${{ else }}:
-      tags: |
-        $(Build.BuildNumber)
-        $(OS)-$(ARCH)-$(Build.BuildNumber)
+        build
 
-- task: Docker@2
-  inputs:
-    displayName: "Publish"
-    containerRegistry: 'Dockerhubvinils'
-    repository: '$(Build.Repository.Name)'
-    command: 'push'
-    ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/main') }}:
+  - script: |
+      docker create --name temp_container $(Build.Repository.Name):build
+      docker cp temp_container:/app/bin $(Build.ArtifactStagingDirectory)
+      docker rm temp_container
+    displayName: 'Copy Build'
+
+  - task: PublishBuildArtifacts@1
+    displayName: "Publish Build"
+    continueOnError: true
+    inputs:
+      artifactName: $(OS)/$(ARCH)
+
+  - task: Docker@2
+    displayName: "Tests & Coverage"
+    inputs:
+      repository: '$(Build.Repository.Name)'
+      command: 'build'
+      Dockerfile: '**/Dockerfile'
+      arguments: |
+        --target test
+        --platform $(OS)/$(ARCH)
+        --build-arg BUILDIMGTAG=$(BUILDIMGTAG)
+        --build-arg BUILDNUMER=$(Build.BuildNumber)
+        --build-arg FINALIMAGE=$(FINALIMAGE)
       tags: |
-        $(OS)-$(ARCH)-$(Build.BuildNumber)
-        $(OS)-$(ARCH)-latest
-        latest
-    ${{ else }}:
-      tags: |
-        $(Build.BuildNumber)
-        $(OS)-$(ARCH)-$(Build.BuildNumber)
+        test
+
+  - script: |
+      docker create --name temp_container $(Build.Repository.Name):test
+      docker cp temp_container:/app/test $(Build.ArtifactStagingDirectory)/test
+      docker rm temp_container
+    displayName: 'Copy Tests'
+
+  - task: PublishTestResults@2
+    displayName: "Publish Tests"
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '$(Build.ArtifactStagingDirectory)/test/**/junit.xml'
+      mergeTestResults: true
+      failTaskOnFailedTests: true
+      failTaskOnFailureToPublishResults: true
+      failTaskOnMissingResultsFile: true
+      testRunTitle: "$(OS)/$(ARCH)"
+
+  - task: PublishCodeCoverageResults@2
+    displayName: "Publish Coverage"
+    condition: always()
+    inputs:
+      summaryFileLocation: '$(Build.ArtifactStagingDirectory)/test/**/coverage.xml'
+      failIfCoverageEmpty: true
+
+
+  - task: Docker@2
+    displayName: "Final image"
+    inputs:
+      containerRegistry: 'Dockerhubvinils'
+      repository: '$(Build.Repository.Name)'
+      command: 'build'
+      Dockerfile: '**/Dockerfile'
+      arguments: |
+        --platform $(OS)/$(ARCH)
+        --build-arg BUILDIMGTAG=$(BUILDIMGTAG)
+        --build-arg BUILDNUMER=$(Build.BuildNumber)
+        --build-arg FINALIMAGE=$(FINALIMAGE)
+      ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/main') }}:
+        tags: |
+          $(OS)-$(ARCH)-$(Build.BuildNumber)
+          $(OS)-$(ARCH)-latest
+          latest
+      ${{ else }}:
+        tags: |
+          $(Build.BuildNumber)
+          $(OS)-$(ARCH)-$(Build.BuildNumber)
+
+  - task: Docker@2
+    inputs:
+      displayName: "Publish"
+      containerRegistry: 'Dockerhubvinils'
+      repository: '$(Build.Repository.Name)'
+      command: 'push'
+      ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/main') }}:
+        tags: |
+          $(OS)-$(ARCH)-$(Build.BuildNumber)
+          $(OS)-$(ARCH)-latest
+          latest
+      ${{ else }}:
+        tags: |
+          $(Build.BuildNumber)
+          $(OS)-$(ARCH)-$(Build.BuildNumber)

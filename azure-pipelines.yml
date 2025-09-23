@@ -137,9 +137,3 @@ steps:
     ${{ else }}:
       tags: |
         $(Build.BuildNumber)
-
-# - task: Docker@2
-#   inputs:
-#     containerRegistry: '$(containerRegistry)'
-#     repository: '$(Build.DefinitionName)'
-#     command: 'push'

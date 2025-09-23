@@ -17,15 +17,18 @@ strategy:
   matrix:
     linuxAmd64:
       imageName: "ubuntu-latest"
-      PLATFORM: 'linux/amd64'
+      OS: 'linux'
+      ARCH: 'amd64'
       FINALIMAGE: gcr.io/distroless/base-debian11
     linuxArm64:
       imageName: "ubuntu-latest"
-      PLATFORM: 'linux/arm64'
+      OS: 'linux'
+      ARCH: 'arm64'
       FINALIMAGE: gcr.io/distroless/base-debian11
     windows:
       imageName: "windows-latest"
-      PLATFORM: 'windows/amd64'
+      OS: 'windows'
+      ARCH: 'amd64'
       FINALIMAGE: golang:$(BUILDIMGTAG)
 
 pool:
@@ -38,12 +41,12 @@ steps:
 
 - script: |
     docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-  condition: contains(variables.PLATFORM, 'arm')
+  condition: contains(variables.ARCH, 'arm')
   displayName: Set ARM emulator on linux
 
 - task: PowerShell@2
   displayName: 'Set dockerfile shell on windows'
-  condition: contains(variables.PLATFORM, 'windows')
+  condition: contains(variables.OS, 'windows')
   inputs:
     targetType: 'inline'
     script: |
@@ -61,7 +64,7 @@ steps:
     Dockerfile: '**/Dockerfile'
     arguments: |
       --target build
-      --platform $(PLATFORM)
+      --platform $(OS)/$(ARCH)
       --build-arg BUILDIMGTAG=$(BUILDIMGTAG)
       --build-arg BUILDNUMER=$(Build.BuildNumber)
       --build-arg FINALIMAGE=$(FINALIMAGE)
@@ -78,7 +81,7 @@ steps:
   displayName: "Publish Build"
   continueOnError: true
   inputs:
-     artifactName: $(PLATFORM)
+     artifactName: $(OS)/$(ARCH)
 
 - task: Docker@2
   displayName: "Tests & Coverage"
@@ -88,7 +91,7 @@ steps:
     Dockerfile: '**/Dockerfile'
     arguments: |
       --target test
-      --platform $(PLATFORM)
+      --platform $(OS)/$(ARCH)
       --build-arg BUILDIMGTAG=$(BUILDIMGTAG)
       --build-arg BUILDNUMER=$(Build.BuildNumber)
       --build-arg FINALIMAGE=$(FINALIMAGE)
@@ -110,7 +113,7 @@ steps:
     failTaskOnFailedTests: true
     failTaskOnFailureToPublishResults: true
     failTaskOnMissingResultsFile: true
-    testRunTitle: "$(PLATFORM)"
+    testRunTitle: "$(OS)/$(ARCH)"
 
 - task: PublishCodeCoverageResults@2
   displayName: "Publish Coverage"
@@ -126,14 +129,16 @@ steps:
     command: 'build'
     Dockerfile: '**/Dockerfile'
     arguments: |
-      --platform $(PLATFORM)
+      --platform $(OS)/$(ARCH)
       --build-arg BUILDIMGTAG=$(BUILDIMGTAG)
       --build-arg BUILDNUMER=$(Build.BuildNumber)
       --build-arg FINALIMAGE=$(FINALIMAGE)
     ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/main') }}:
       tags: |
-        $(Build.BuildNumber)
+        $(OS)-$(ARCH)-$(Build.BuildNumber)
+        $(OS)-$(ARCH)-latest
         latest
     ${{ else }}:
       tags: |
         $(Build.BuildNumber)
+        $(OS)-$(ARCH)-latest

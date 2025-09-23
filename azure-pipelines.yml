@@ -122,10 +122,12 @@ steps:
     summaryFileLocation: '$(Build.ArtifactStagingDirectory)/test/**/coverage.xml'
     failIfCoverageEmpty: true
 
+
 - task: Docker@2
   displayName: "Final image"
   inputs:
-    repository: '$(Build.DefinitionName)'
+    containerRegistry: 'Dockerhubvinils'
+    repository: 'vinils/$(Build.DefinitionName)'
     command: 'build'
     Dockerfile: '**/Dockerfile'
     arguments: |
@@ -141,4 +143,20 @@ steps:
     ${{ else }}:
       tags: |
         $(Build.BuildNumber)
+        $(OS)-$(ARCH)-$(Build.BuildNumber)
+
+- task: Docker@2
+  inputs:
+    displayName: "Publish"
+    containerRegistry: 'Dockerhubvinils'
+    repository: 'vinils/$(Build.DefinitionName)'
+    command: 'push'
+    ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/main') }}:
+      tags: |
+        $(OS)-$(ARCH)-$(Build.BuildNumber)
         $(OS)-$(ARCH)-latest
+        latest
+    ${{ else }}:
+      tags: |
+        $(Build.BuildNumber)
+        $(OS)-$(ARCH)-$(Build.BuildNumber)

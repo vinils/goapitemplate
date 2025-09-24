@@ -1,3 +1,11 @@
+schedules:
+- cron: "0 0 * * 0" # Runs every Sunday at 00:00 (midnight UTC)
+  displayName: Weekly Sunday Run
+  branches:
+    include:
+    - main
+  always: true # Set to true to always run, even if no code changes
+
 trigger:
   branches:
     include:

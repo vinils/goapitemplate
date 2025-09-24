@@ -50,7 +50,7 @@ test:
 
 # Test the application
 .PHONY: coverage
-test:
+coverage:
 	go tool cover -html coverage.txt
 
 # Format the code

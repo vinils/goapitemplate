@@ -21,7 +21,7 @@ RUN go build -o /app/bin/myapp
 FROM build AS test
 
 RUN go install github.com/jstemmer/go-junit-report@latest
-RUN go install github.com/axw/gocov/gocov@latest
+RUN go install github.com/afunix/gocov/gocov@latest
 RUN go install github.com/vinils/gocov-xml@latest
 
 RUN mkdir -p "/app/test"

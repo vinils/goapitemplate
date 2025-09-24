@@ -145,8 +145,8 @@ jobs:
           $(OS)-$(ARCH)-$(Build.BuildNumber)
 
   - task: Docker@2
+    displayName: "Publish"
     inputs:
-      displayName: "Publish"
       containerRegistry: 'Dockerhubvinils'
       repository: '$(Build.Repository.Name)'
       command: 'push'
@@ -159,3 +159,29 @@ jobs:
         tags: |
           $(Build.BuildNumber)
           $(OS)-$(ARCH)-$(Build.BuildNumber)
+
+- job: Publish
+  dependsOn:
+  - Build
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - task: Docker@2
+    inputs:
+      containerRegistry: 'Dockerhubvinils'
+      command: 'login'
+
+  - script: |
+      docker manifest create $(Build.Repository.Name):$(Build.BuildNumber) \
+        $(Build.Repository.Name):windows-amd64-$(Build.BuildNumber) \
+        $(Build.Repository.Name):linux-amd64-$(Build.BuildNumber)
+      docker manifest push $(Build.Repository.Name):$(Build.BuildNumber)
+    displayName: 'Create and Push Multi-arch Manifest'
+
+  - script: |
+      docker manifest create $(Build.Repository.Name):latest \
+        $(Build.Repository.Name):windows-amd64-$(Build.BuildNumber) \
+        $(Build.Repository.Name):linux-amd64-$(Build.BuildNumber)
+      docker manifest push $(Build.Repository.Name):latest
+    displayName: 'Create and Push Latest Multi-arch Manifest'
+    condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')

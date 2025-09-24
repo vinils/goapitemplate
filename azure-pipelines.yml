@@ -35,7 +35,7 @@ jobs:
   pool:
     vmImage: $(imageName)
   variables:
-    BUILDIMGTAG: '1.24.7'
+    BUILDIMGTAG: '1.25.1'
   steps:
 
   - script: |

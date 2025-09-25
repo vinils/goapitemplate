@@ -13,7 +13,7 @@ trigger:
   paths:
     exclude:
     - README.md
-    - devcontainer
+    - .devcontainer/**
     - env.example
     - '**/*.http'
     - azurepipelines-coverage.yml

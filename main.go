@@ -31,13 +31,19 @@ func setupRouter() *gin.Engine {
 	return router
 }
 
-func main() {
-	server := setupRouter()
-	port := os.Getenv("PORT")
+func GetenvOrDefault(key string, defaultvalue string) string {
+	port := os.Getenv(key)
 
 	if port == "" {
-		port = "8080"
+		port = defaultvalue
 	}
+
+	return port
+}
+
+func main() {
+	server := setupRouter()
+	port := GetenvOrDefault("PORT", "8080")
 
 	_ = server.Run(":" + port)
 }

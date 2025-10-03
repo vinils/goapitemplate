@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -56,4 +57,20 @@ func TestHealthCheck(t *testing.T) {
 	difTime, maxDiffSeconds := diffTimeAndMaxDiffSeconds(expectedTime, actualTime)
 
 	assert.LessOrEqual(t, difTime, maxDiffSeconds)
+}
+
+func TestGetenvOrDefault_WhenNoValue(test *testing.T) {
+	expected := "defaultvalue"
+	actual := GetenvOrDefault("", expected)
+
+	assert.Equal(test, actual, expected)
+}
+
+func TestGetenvOrDefault_EnvValue(test *testing.T) {
+	key := "keyEnviromentName"
+	os.Setenv(key, "expectedvalue")
+	expected := os.Getenv(key)
+	actual := GetenvOrDefault(key, "notexpected")
+
+	assert.Equal(test, actual, expected)
 }

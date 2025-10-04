@@ -9,11 +9,9 @@ FROM golang:$BUILDIMGTAG AS build
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
+COPY . .
 
 RUN go mod download
-
-COPY *.go ./
 
 RUN mkdir -p "c:\app\bin"
 RUN go build -o /app/bin/myapp

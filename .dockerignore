@@ -5,6 +5,12 @@
 */tmp/
 vendor/ # If you're not vendoring dependencies within the image
 
+# Code coverage profiles and other test artifacts
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+
 # Ignore common development tools and configurations
 .git
 .gitignore
@@ -19,3 +25,13 @@ docs/
 
 # Ignore log files and other runtime artifacts
 *.log
+
+*.yml
+*.md
+.devcontainer/
+.dockerignore
+.env*
+.github/
+*.dev
+*.http
+Dockerfile

@@ -13,7 +13,6 @@ COPY . .
 
 RUN go mod download
 
-RUN mkdir -p "c:\app\bin"
 RUN go build -o /app/bin/myapp
 
 FROM build AS test

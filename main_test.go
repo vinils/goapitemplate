@@ -72,5 +72,5 @@ func TestGetenvOrDefault_EnvValue(test *testing.T) {
 	expected := os.Getenv(key)
 	actual := GetenvOrDefault(key, "notexpected")
 
-	assert.Equal(test, actual, expected)
+	assert.Equal(test, expected, actual)
 }

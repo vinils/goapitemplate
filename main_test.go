@@ -26,8 +26,8 @@ func TestNewTime(test *testing.T) {
 }
 
 func TestNewTimeNow(test *testing.T) {
-	actual := newTimeNow()
 	expected := time.Now()
+	actual := newTimeNow()
 	difTime, maxDiffSeconds := diffTimeAndMaxDiffSeconds(expected, actual)
 
 	assert.LessOrEqual(test, difTime, maxDiffSeconds)

@@ -19,8 +19,8 @@ func diffTimeAndMaxDiffSeconds(time time.Time, actual timeStruct) (float64, floa
 
 func TestNewTime(test *testing.T) {
 	time := time.Now()
-	actual := newTime(time)
 	expected := timeStruct{time}
+	actual := newTime(time)
 
 	assert.Equal(test, actual, expected)
 }

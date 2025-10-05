@@ -63,7 +63,7 @@ func TestGetenvOrDefault_WhenNoValue(test *testing.T) {
 	expected := "defaultvalue"
 	actual := GetenvOrDefault("", expected)
 
-	assert.Equal(test, actual, expected)
+	assert.Equal(test, expected, actual)
 }
 
 func TestGetenvOrDefault_EnvValue(test *testing.T) {

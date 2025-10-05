@@ -22,7 +22,7 @@ func TestNewTime(test *testing.T) {
 	expected := timeStruct{time}
 	actual := newTime(time)
 
-	assert.Equal(test, actual, expected)
+	assert.Equal(test, expected, actual)
 }
 
 func TestNewTimeNow(test *testing.T) {

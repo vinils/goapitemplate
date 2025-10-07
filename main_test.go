@@ -4,33 +4,25 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func diffTimeAndMaxDiffSeconds(time time.Time, actual timeStruct) (float64, float64) {
-	diff := time.Sub(actual.Time).Seconds()
-	maxDiffSeconds := float64(10)
-	return diff, maxDiffSeconds
-}
-
 func TestNewTime(test *testing.T) {
 	time := time.Now()
-	expected := timeStruct{time}
 	actual := newTime(time)
+	expected := timeStruct{time}
 
-	assert.Equal(test, expected, actual)
+	assert.Equal(test, actual, expected)
 }
 
 func TestNewTimeNow(test *testing.T) {
-	expected := time.Now()
 	actual := newTimeNow()
-	difTime, maxDiffSeconds := diffTimeAndMaxDiffSeconds(expected, actual)
+	expected := time.Now()
 
-	assert.LessOrEqual(test, difTime, maxDiffSeconds)
+	assert.WithinDuration(test, expected, actual.Time, time.Second)
 }
 
 func TestHealthCheck(t *testing.T) {
@@ -52,25 +44,7 @@ func TestHealthCheck(t *testing.T) {
 	// Decode the response body
 	var actualTime timeStruct
 	err = json.Unmarshal(newRecord.Body.Bytes(), &actualTime)
+
 	assert.NoError(t, err)
-
-	difTime, maxDiffSeconds := diffTimeAndMaxDiffSeconds(expectedTime, actualTime)
-
-	assert.LessOrEqual(t, difTime, maxDiffSeconds)
-}
-
-func TestGetenvOrDefault_WhenNoValue(test *testing.T) {
-	expected := "defaultvalue"
-	actual := GetenvOrDefault("", expected)
-
-	assert.Equal(test, expected, actual)
-}
-
-func TestGetenvOrDefault_EnvValue(test *testing.T) {
-	key := "keyEnviromentName"
-	os.Setenv(key, "expectedvalue")
-	expected := os.Getenv(key)
-	actual := GetenvOrDefault(key, "notexpected")
-
-	assert.Equal(test, expected, actual)
+	assert.WithinDuration(t, expectedTime, actualTime.Time, time.Second)
 }

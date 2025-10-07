@@ -26,6 +26,7 @@ func TestNewTimeNow(test *testing.T) {
 }
 
 func TestHealthCheck(t *testing.T) {
+	expectedStatus := http.StatusOK
 	router := setupRouter()
 
 	newRecord := httptest.NewRecorder()
@@ -35,16 +36,11 @@ func TestHealthCheck(t *testing.T) {
 	expectedTime := time.Now()
 	router.ServeHTTP(newRecord, req)
 
-	assert.Equal(t, 200, newRecord.Code)
-	// assert.Contains(t, newRecord.Body.String(), expected)
-
-	// Assert the Content-Type header
-	assert.Equal(t, "application/json; charset=utf-8", newRecord.Header().Get("Content-Type"))
-
-	// Decode the response body
 	var actualTime timeStruct
 	err = json.Unmarshal(newRecord.Body.Bytes(), &actualTime)
 
+	assert.Equal(t, expectedStatus, newRecord.Code)
+	assert.Equal(t, "application/json; charset=utf-8", newRecord.Header().Get("Content-Type"))
 	assert.NoError(t, err)
 	assert.WithinDuration(t, expectedTime, actualTime.Time, time.Second)
 }

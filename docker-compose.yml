@@ -4,4 +4,4 @@ services:
     build: .
 
 volumes:
-  postgres-data:
+  db-data:

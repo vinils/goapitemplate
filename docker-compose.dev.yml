@@ -1,7 +1,10 @@
 services:
 
   api:
-    network_mode: service:db
+    volumes:
+      - .:/app  # Mount current directory for live code changes
+    ports:
+      - "${PORT-8080}:${PORT-8080}"
     command: sleep infinity
 
   db:

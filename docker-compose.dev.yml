@@ -5,7 +5,7 @@ services:
       - .:/app  # Mount current directory for live code changes
     ports:
       - "${PORT-8080}:${PORT-8080}"
-    command: sleep infinity
+    command: go run main.go # Run directly, not the built binary
 
   db:
     restart: unless-stopped
